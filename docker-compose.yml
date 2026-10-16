@@ -1,0 +1,12 @@
+services:
+  mcp:
+    build: .
+    command: npm run dev
+    env_file:
+      - .env
+    ports:
+      - "${MCP_HTTP_PORT}:${MCP_HTTP_PORT}"
+    restart: unless-stopped
+    volumes:
+      - ./src:/app/src
+      - ./tsconfig.json:/app/tsconfig.json

@@ -1,0 +1,60 @@
+import { Stagehand } from "@browserbasehq/stagehand";
+import { createBrowserSession, resolveCdpUrl, stopBrowserSession } from "./browser-use.ts";
+import { stagehandModel } from "./config.ts";
+
+export interface Session {
+  id: string;
+  liveUrl: string | null;
+  stagehand: Stagehand;
+}
+
+const sessions = new Map<string, Session>();
+
+export function lastPage(stagehand: Stagehand) {
+  const pages = stagehand.context.pages();
+  if (!pages || pages.length === 0) throw new Error("No page available");
+  return pages[pages.length - 1];
+}
+
+export async function startSession(): Promise<Session> {
+  const { id, cdpUrl, liveUrl } = await createBrowserSession();
+  const stagehand = new Stagehand({
+    env: "LOCAL",
+    localBrowserLaunchOptions: { cdpUrl: await resolveCdpUrl(cdpUrl) },
+    model: stagehandModel(),
+    verbose: 0,
+  });
+  try {
+    await stagehand.init();
+  } catch (err) {
+    await stopBrowserSession(id);
+    throw err;
+  }
+  const session: Session = { id, liveUrl: liveUrl ?? null, stagehand };
+  sessions.set(id, session);
+  console.error(`[stagehand] session ${id} started${liveUrl ? ` (live: ${liveUrl})` : ""}`);
+  return session;
+}
+
+export function getSession(id: string): Session {
+  const session = sessions.get(id);
+  if (!session) throw new Error(`Unknown session ${id}`);
+  return session;
+}
+
+export async function closeSession(id: string): Promise<boolean> {
+  const session = sessions.get(id);
+  if (!session) return false;
+  sessions.delete(id);
+  try {
+    await session.stagehand.close();
+  } catch (err) {
+    console.error("[stagehand] close failed:", (err as Error).message);
+  }
+  await stopBrowserSession(id);
+  return true;
+}
+
+export async function closeAllSessions(): Promise<void> {
+  await Promise.all([...sessions.keys()].map((id) => closeSession(id)));
+}
