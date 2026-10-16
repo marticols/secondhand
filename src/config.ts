@@ -1,3 +1,5 @@
+import { randomUUID } from "node:crypto";
+
 const num = (raw: string | undefined, fallback: number): number =>
   raw === undefined || raw === "" ? fallback : Number(raw);
 
@@ -15,15 +17,22 @@ export interface ModelConfig {
   modelName: string;
   apiKey: string;
   baseURL: string;
+  headers: Record<string, string>;
 }
 
 export function stagehandModel(): ModelConfig {
-  const apiKey = process.env.OPENROUTER_API_KEY;
-  if (!apiKey) throw new Error("OPENROUTER_API_KEY is not set");
+  const apiKey = process.env.OPENCODE_API_KEY;
+  if (!apiKey) throw new Error("OPENCODE_API_KEY is not set");
 
   return {
-    modelName: process.env.STAGEHAND_MODEL_NAME || "openai/openai/gpt-4o-mini",
+    modelName: process.env.STAGEHAND_MODEL_NAME || "openai/deepseek-v4.1-flash",
     apiKey,
-    baseURL: process.env.OPENROUTER_BASE_URL || "https://openrouter.ai/api/v1",
+    baseURL: process.env.OPENCODE_BASE_URL || "https://opencode.ai/zen/go/v1",
+    // Go rejects requests without a stable per-conversation session id. One call per
+    // browser session, so this id stays stable for the whole session and is fresh for new ones.
+    headers: {
+      "x-opencode-session": randomUUID(),
+      "User-Agent": process.env.STAGEHAND_USER_AGENT || "stagehand-browser-mcp/1.0",
+    },
   };
 }
