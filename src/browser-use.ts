@@ -29,7 +29,7 @@ export async function createBrowserSession(): Promise<BrowserUseSession> {
   if (!profileId) throw new Error("BROWSER_USE_PROFILE_ID is not set");
   const session: BrowserUseSession = await browserUse("/browsers", {
     method: "POST",
-    body: JSON.stringify({ profileId, proxyCountryCode: null }),
+    body: JSON.stringify({ profileId, proxyCountryCode: null, timeout: 10 }),
   });
   if (!session.id || !session.cdpUrl) throw new Error("Browser Use did not return id + cdpUrl");
   console.error(`[browser-use] session ${session.id} up (profile ${profileId})`);

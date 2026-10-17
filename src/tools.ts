@@ -1,6 +1,11 @@
+import { readFile } from "node:fs/promises";
+import { basename, isAbsolute, join, relative } from "node:path";
 import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import { z } from "zod";
 import { closeSession, getSession, lastPage, startSession } from "./sessions.ts";
+
+// Host ./files is mounted here; see docker-compose.yml.
+const filesDir = "/app/files";
 
 const asText = (value: unknown) => ({
   content: [
@@ -52,9 +57,56 @@ export function createMcpServer(): McpServer {
   );
 
   server.tool(
+    "upload_file",
+    {
+      sessionId,
+      selector: z.string(),
+      path: z
+        .string()
+        .describe(
+          'File name to upload inside /Users/marti/Projects/browser/files',
+        ),
+    },
+    async ({ sessionId, selector, path }) => {
+      const page = lastPage(getSession(sessionId).stagehand);
+      const target = isAbsolute(path) ? path : join(filesDir, path);
+      const outside = relative(filesDir, target);
+      if (outside.startsWith("..") || isAbsolute(outside)) {
+        throw new Error(`File must be inside ${filesDir} (host ./files), got: ${path}`);
+      }
+      let base64: string;
+      try {
+        base64 = (await readFile(target)).toString("base64");
+      } catch {
+        throw new Error(`Cannot read ${target}. Put the file in the host ./files folder first.`);
+      }
+      const name = basename(target);
+      // The browser runs remotely (browser-use), so it cannot read our local paths;
+      // build the File in the page and assign it to the input.
+      const files = await page.evaluate(
+        ({ selector, name, base64 }) => {
+          const el = document.querySelector(selector);
+          if (!(el instanceof HTMLInputElement) || el.type !== "file") {
+            throw new Error(`Not a file input: ${selector}`);
+          }
+          const bytes = Uint8Array.from(atob(base64), (c) => c.charCodeAt(0));
+          const dt = new DataTransfer();
+          dt.items.add(new File([bytes], name));
+          el.files = dt.files;
+          el.dispatchEvent(new Event("input", { bubbles: true }));
+          el.dispatchEvent(new Event("change", { bubbles: true }));
+          return el.files.length;
+        },
+        { selector, name, base64 },
+      );
+      return asText({ uploaded: name, files });
+    },
+  );
+
+  server.tool(
     "observe",
-    "List actionable elements on the page, optionally filtered by an instruction.",
-    { sessionId, instruction: z.string().optional().describe("Optional natural language filter") },
+    "Observe actionable elements on the page",
+    { sessionId, instruction: z.string().describe("Optional natural language filter") },
     async ({ sessionId, instruction }) => {
       const { stagehand } = getSession(sessionId);
       return asText(instruction ? await stagehand.observe(instruction) : await stagehand.observe());
@@ -64,7 +116,7 @@ export function createMcpServer(): McpServer {
   server.tool(
     "extract",
     "Extract data from the page. Without an instruction returns the full page text.",
-    { sessionId, instruction: z.string().optional().describe("Optional extraction instruction") },
+    { sessionId, instruction: z.string().optional() },
     async ({ sessionId, instruction }) => {
       const { stagehand } = getSession(sessionId);
       return asText(instruction ? await stagehand.extract(instruction) : await stagehand.extract());
