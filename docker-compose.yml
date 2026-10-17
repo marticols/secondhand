@@ -10,3 +10,7 @@ services:
     volumes:
       - ./src:/app/src
       - ./tsconfig.json:/app/tsconfig.json
+      - stagehand-cache:/app/.cache
+
+volumes:
+  stagehand-cache:

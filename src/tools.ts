@@ -14,11 +14,11 @@ const asText = (value: unknown) => ({
 const sessionId = z.string().describe("Session ID returned by start_session");
 
 export function createMcpServer(): McpServer {
-  const server = new McpServer({ name: "stagehand-mcp", version: "0.1.0" });
+  const server = new McpServer({ name: "browser-mcp", version: "0.1.0" });
 
   server.tool(
     "start_session",
-    "Start a new browser session. Returns the session ID required by every other tool.",
+    "",
     {},
     async () => {
       const session = await startSession();
@@ -28,14 +28,14 @@ export function createMcpServer(): McpServer {
 
   server.tool(
     "close_session",
-    "Close a browser session and end its Browser Use billing; the profile keeps the cookies for the next session.",
+    "Always close the session when you are done with it.",
     { sessionId },
     async ({ sessionId }) => asText({ closed: await closeSession(sessionId) }),
   );
 
   server.tool(
     "navigate",
-    "Navigate the session's browser to a URL and return the resulting page title and URL.",
+    "",
     { sessionId, url: z.string().describe("Absolute URL to open, e.g. https://example.com") },
     async ({ sessionId, url }) => {
       const page = lastPage(getSession(sessionId).stagehand);
@@ -46,14 +46,14 @@ export function createMcpServer(): McpServer {
 
   server.tool(
     "act",
-    "Perform a single action on the session's page described in natural language.",
+    "Perform a single action on the page described in natural language.",
     { sessionId, action: z.string().describe('e.g. "click the Sign in button"') },
     async ({ sessionId, action }) => asText(await getSession(sessionId).stagehand.act(action)),
   );
 
   server.tool(
     "observe",
-    "List actionable elements on the session's page, optionally filtered by an instruction.",
+    "List actionable elements on the page, optionally filtered by an instruction.",
     { sessionId, instruction: z.string().optional().describe("Optional natural language filter") },
     async ({ sessionId, instruction }) => {
       const { stagehand } = getSession(sessionId);
@@ -63,7 +63,7 @@ export function createMcpServer(): McpServer {
 
   server.tool(
     "extract",
-    "Extract data from the session's page. Without an instruction returns the full page text.",
+    "Extract data from the page. Without an instruction returns the full page text.",
     { sessionId, instruction: z.string().optional().describe("Optional extraction instruction") },
     async ({ sessionId, instruction }) => {
       const { stagehand } = getSession(sessionId);

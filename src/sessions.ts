@@ -22,6 +22,8 @@ export async function startSession(): Promise<Session> {
     env: "LOCAL",
     localBrowserLaunchOptions: { cdpUrl: await resolveCdpUrl(cdpUrl) },
     model: stagehandModel(),
+    // Persisted by the stagehand-cache Docker volume at /app/.cache.
+    cacheDir: ".cache/stagehand",
     verbose: 0,
   });
   try {

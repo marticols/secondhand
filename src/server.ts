@@ -13,5 +13,5 @@ for (const signal of ["SIGINT", "SIGTERM"] as const) {
 }
 
 app.listen(config.port, () => {
-  console.error(`[mcp] Stagehand MCP server listening on http://0.0.0.0:${config.port}/mcp`);
+  console.error(`[mcp] Browser MCP server listening on http://0.0.0.0:${config.port}/mcp`);
 });
