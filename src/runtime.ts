@@ -1,25 +1,5 @@
 import { config } from "./config.ts";
 
-let rejectShutdown: ((err: Error) => void) | undefined;
-
-/**
- * Rejected once the server starts shutting down. Racing pending tool calls against
- * it means an in-flight request gets an error response instead of hanging forever
- * when the process is replaced (`node --watch` restarts on every file edit).
- */
-const shutdownSignal = new Promise<never>((_, reject) => {
-  rejectShutdown = reject;
-});
-shutdownSignal.catch(() => {}); // handled per-race below; keep the process quiet
-
-export function beginShutdown(reason: string): void {
-  rejectShutdown?.(new Error(reason));
-  rejectShutdown = undefined;
-}
-
-export const wait = (ms: number): Promise<void> =>
-  new Promise((resolve) => setTimeout(resolve, ms));
-
 export class TimeoutError extends Error {
   constructor(label: string, ms: number) {
     super(`${label} did not finish within ${ms}ms`);
@@ -28,7 +8,7 @@ export class TimeoutError extends Error {
 }
 
 /**
- * Runs `fn`, rejecting when it stalls past `timeoutMs` or the server shuts down.
+ * Runs `fn`, rejecting when it stalls past `timeoutMs`.
  *
  * Stagehand gives its `act`/`observe` model calls no timeout of their own, so a
  * stalled model response would otherwise keep the tool call — and the client —
@@ -44,7 +24,7 @@ export async function withDeadline<T>(
     timer = setTimeout(() => reject(new TimeoutError(label, timeoutMs)), timeoutMs);
   });
   try {
-    return await Promise.race([fn(), deadline, shutdownSignal]);
+    return await Promise.race([fn(), deadline]);
   } finally {
     clearTimeout(timer);
   }

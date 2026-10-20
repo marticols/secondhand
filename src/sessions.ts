@@ -75,7 +75,3 @@ export async function closeSession(id: string): Promise<boolean> {
   await stopBrowserSession(id);
   return true;
 }
-
-export async function closeAllSessions(): Promise<void> {
-  await Promise.all([...sessions.keys()].map((id) => closeSession(id)));
-}
