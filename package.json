@@ -1,8 +1,27 @@
 {
+  "name": "secondhand",
+  "version": "0.1.0",
   "private": true,
+  "description": "Cheap browser automation over MCP: Stagehand + Browser Use, driven by an OpenCode Go subscription.",
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/marticols/secondhand.git"
+  },
+  "engines": {
+    "node": ">=24"
+  },
+  "keywords": [
+    "mcp",
+    "browser-automation",
+    "stagehand",
+    "browser-use",
+    "playwright"
+  ],
   "type": "module",
   "scripts": {
-    "dev": "node --watch src/server.ts",
+    "dev": "node --env-file-if-exists=.env --watch src/server.ts",
+    "start": "node --env-file-if-exists=.env src/server.ts",
     "typecheck": "tsc --noEmit"
   },
   "dependencies": {

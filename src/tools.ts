@@ -1,13 +1,13 @@
 import { readFile } from "node:fs/promises";
-import { basename, isAbsolute, join, relative } from "node:path";
+import { basename, isAbsolute, join, relative, resolve } from "node:path";
 import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import { z } from "zod";
 import { config } from "./config.ts";
 import { withDeadline } from "./runtime.ts";
 import { closeSession, getSession, lastPage, runExclusive, startSession } from "./sessions.ts";
 
-// Host ./files is mounted here; see docker-compose.yml.
-const filesDir = "/app/files";
+// Host ./files. Docker mounts it at /app/files, matching the working dir.
+const filesDir = resolve(process.env.FILES_DIR || "files");
 
 const asText = (value: unknown) => ({
   content: [
@@ -42,7 +42,7 @@ const guard = async <T>(label: string, fn: () => Promise<T>) => {
 const sessionId = z.string().describe("Session ID returned by start_session");
 
 export function createMcpServer(): McpServer {
-  const server = new McpServer({ name: "browser-mcp", version: "0.1.0" });
+  const server = new McpServer({ name: "secondhand", version: "0.1.0" });
 
   server.tool("start_session", "", {}, async () =>
     guard("start_session", async () => {
@@ -92,7 +92,7 @@ export function createMcpServer(): McpServer {
       path: z
         .string()
         .describe(
-          'File name to upload inside /Users/marti/Projects/browser/files',
+          'File name to upload from the ./files folder',
         ),
     },
     async ({ sessionId, selector, path }) =>
