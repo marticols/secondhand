@@ -1,13 +1,10 @@
 import { readFile } from "node:fs/promises";
-import { basename, isAbsolute, join, relative, resolve } from "node:path";
+import { basename, isAbsolute, join, relative } from "node:path";
 import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import { z } from "zod";
 import { config } from "./config.ts";
 import { withDeadline } from "./runtime.ts";
 import { closeSession, getSession, lastPage, runExclusive, startSession } from "./sessions.ts";
-
-// Host ./files. Docker mounts it at /app/files, matching the working dir.
-const filesDir = resolve(process.env.FILES_DIR || "files");
 
 const asText = (value: unknown) => ({
   content: [
@@ -91,22 +88,20 @@ export function createMcpServer(): McpServer {
       selector: z.string(),
       path: z
         .string()
-        .describe(
-          'File name to upload from the ./files folder',
-        ),
+        .describe("File name to upload, relative to the files folder (FILES_DIR)"),
     },
     async ({ sessionId, selector, path }) =>
       guard("upload_file", async () => {
-        const target = isAbsolute(path) ? path : join(filesDir, path);
-        const outside = relative(filesDir, target);
+        const target = isAbsolute(path) ? path : join(config.filesDir, path);
+        const outside = relative(config.filesDir, target);
         if (outside.startsWith("..") || isAbsolute(outside)) {
-          throw new Error(`File must be inside ${filesDir} (host ./files), got: ${path}`);
+          throw new Error(`File must be inside ${config.filesDir}, got: ${path}`);
         }
         let base64: string;
         try {
           base64 = (await readFile(target)).toString("base64");
         } catch {
-          throw new Error(`Cannot read ${target}. Put the file in the host ./files folder first.`);
+          throw new Error(`Cannot read ${target}. Put the file in ${config.filesDir} first.`);
         }
         const name = basename(target);
         // The browser runs remotely (browser-use), so it cannot read our local paths;

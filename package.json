@@ -2,7 +2,7 @@
   "name": "secondhand",
   "version": "0.1.0",
   "private": true,
-  "description": "Cheap browser automation over MCP: Stagehand + Browser Use, driven by an OpenCode Go subscription.",
+  "description": "Cheap browser automation over MCP: Stagehand + Browser Use, driven by any supported LLM provider.",
   "license": "MIT",
   "repository": {
     "type": "git",

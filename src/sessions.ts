@@ -36,11 +36,14 @@ export function runExclusive<T>(session: Session, fn: (session: Session) => Prom
 }
 
 export async function startSession(): Promise<Session> {
+  // Resolve the model before opening the remote browser: a bad model config
+  // would otherwise strand a paid Browser Use session.
+  const model = stagehandModel();
   const { id, cdpUrl, liveUrl } = await createBrowserSession();
   const stagehand = new Stagehand({
     env: "LOCAL",
     localBrowserLaunchOptions: { cdpUrl: await resolveCdpUrl(cdpUrl) },
-    model: stagehandModel(),
+    model,
     // Persisted by the stagehand-cache Docker volume at /app/.cache.
     cacheDir: ".cache/stagehand",
     verbose: 0,

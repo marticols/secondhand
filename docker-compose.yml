@@ -4,11 +4,13 @@ services:
     command: npm run dev
     env_file:
       - .env
+    environment:
+      FILES_DIR: /app/files
     ports:
       - "${MCP_HTTP_PORT}:${MCP_HTTP_PORT}"
     restart: unless-stopped
     volumes:
-      - ./files:/app/files
+      - "${FILES_DIR:-./files}:/app/files"
       - ./src:/app/src
       - ./tsconfig.json:/app/tsconfig.json
       - stagehand-cache:/app/.cache
